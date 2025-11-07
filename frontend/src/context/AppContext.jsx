@@ -65,8 +65,7 @@ const AppContextProvider = (props) => {
 
     const loadUserProfileData = async () => {
         try {
-            // const {token}=req.headers;
-            console.log("token in context",token);
+            
             // for axios the first arg is body and headers is second arg
             const { data } = await axios.post(backendUrl + '/api/user/get-profile', {},{
                 headers: {

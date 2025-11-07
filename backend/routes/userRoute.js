@@ -1,5 +1,6 @@
 import express from "express"
-import { registerUser, updateProfile,bookAppointment } from "../controllers/userController.js"
+import { registerUser, updateProfile,bookAppointment, listAppointment, cancelAppointment } from "../controllers/userController.js"
+
 import { loginUser } from "../controllers/userController.js"
 import { getProfile } from "../controllers/userController.js"
 import authUser from "../middlewares/authUser.js"
@@ -13,5 +14,7 @@ userRouter.post("/get-profile",authUser,getProfile);
 
 userRouter.post("/update-profile",upload.single('image'),authUser,updateProfile);
 userRouter.post('/book-appointment',authUser,bookAppointment);
+userRouter.post('/appointments',authUser,listAppointment)
+userRouter.post('/cancel-appointment',authUser,cancelAppointment)
 
 export default userRouter

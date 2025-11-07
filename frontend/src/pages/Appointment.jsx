@@ -3,10 +3,12 @@ import { useState } from "react"
 import {useNavigate, useParams} from "react-router-dom"
 import {AppContext} from "../context/AppContext"
 import { assets } from "../assets/assets"
+import axios from "axios"
+import {toast}  from "react-toastify"
 
 const Appointment=()=>{
     const {docId}=useParams()
-    const {doctors,currencySymbol} =useContext(AppContext)
+    const {doctors,getDoctorsData,backendUrl,token} =useContext(AppContext)
     const daysOfWeek=['SUN','MON','TUE','WED','THU','FRI','SAT']
     const navigate=useNavigate()
     const [docInfo,setDocInfo]=useState(null)
@@ -71,6 +73,39 @@ const Appointment=()=>{
     // After finishing one day, adds all that day’s slots to the state array
         }
     }
+
+    const bookAppointment=async()=>{
+        if(!token){
+            toast.warn('Login to book appointment')
+            return navigate('/login');
+        }
+        try{
+            const date=docSlots[slotIndex][0].dateTime;
+            let day=date.getDate()
+            let month=date.getMonth()+1;
+            let year=date.getFullYear()
+
+            const slotDate=day+'_'+month+'_'+year;
+            const {data}=await axios.post(backendUrl+'/api/user/book-appointment',{
+                docId,slotDate,slotTime
+            },{headers:{token}});
+
+            if(data.success){
+                toast.success(data.message);
+                getDoctorsData();
+                return navigate('/my-appointments');
+            }
+            else{
+                toast.error(data.message);
+            }
+        }
+        catch(error){
+            console.log(error)
+            toast.error(error.message);
+        }
+    }
+
+
     useEffect(()=>{
         getAvailableSlots()
     },[docInfo])
@@ -78,6 +113,7 @@ const Appointment=()=>{
     useEffect(()=>{
         console.log(docSlots)
     },[docSlots])
+
     return docInfo && (
         <div>
             {/* doctor details */}
@@ -104,7 +140,7 @@ const Appointment=()=>{
                         {docInfo.about}
                         </p>
                 </div>
-            <p className="text-gray-500 font-medium mt-4">Appointment fee:<span className="text-gray-600 font-bold">{currencySymbol}{docInfo.fees}</span></p>
+            <p className="text-gray-500 font-medium mt-4">Appointment fee:<span className="text-gray-600 font-bold">₹ {docInfo.fees}</span></p>
 
             </div>
 
@@ -138,7 +174,7 @@ const Appointment=()=>{
             ))
           }
         </div>
-         <button className="bg-primary text-white text-sm font-light px-14 py-3 rounded-full my-6">Book an appointment</button>
+         <button onClick={bookAppointment}className="bg-primary text-white text-sm font-light px-14 py-3 rounded-full my-6">Book an appointment</button>
         </div>
         </div>
     )

@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom"
 import axios from "axios"
 import { toast } from "react-toastify"
 import { useContext } from "react"
-console.log()
+
 const Login=()=>{
 
     const {token,setToken}=useContext(AppContext);
