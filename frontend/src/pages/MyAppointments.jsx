@@ -2,8 +2,10 @@ import React, { useContext,useEffect,useState } from 'react'
 import {toast} from "react-toastify"
 import axios from 'axios'
 import { AppContext } from '../context/AppContext'
+import {useNavigate} from "react-router-dom"
 
 const MyAppointments = () => {
+  const navigate=useNavigate();
 
   const {backendUrl,token,getDoctorsData}=useContext(AppContext);
 
@@ -56,11 +58,65 @@ const MyAppointments = () => {
   useEffect(()=>{
     getUseAppointments()
   },[])
-   
+
+  // razorpay logic
+
+  const initPay=(order)=>{
+    const options={
+      key:import.meta.env.VITE_RAZORPAY_KEY_ID,
+      amount:order.amount,
+      currency:order.currency,
+      name:"Appointment Payment",
+      description:"Appointment Payment",
+      order_id:order.id,
+      receipt:order.receipt,
+      // handler fn is to verify the payment by hitting our be route , and sending the message to that be route
+      handler:async (response)=>{
+        try {
+
+          const {data}=await axios.post(backendUrl+'/api/user/verifyRazorpay',response,{
+            headers:{token}
+          })
+          if(data.success){
+            navigate('/my-appointments')
+            getUseAppointments();
+          }
+          
+        } catch (error) {
+          console.log(error)
+          toast.error(error.message);
+          
+        }
+      }
+    }
+    const rzp=new window.Razorpay(options)
+    rzp.open()
+  }
+// when we click on that "pay now" button then we call appointmentRazorpay fn, this fn hits the route of the be wheren firstly instance is created with api secret, key ,then options is created with the currency, amount, receipt(uniquely identify the payment), order is created on that instance with options then that order is send to frontend, frontend calls the initPay fn and gives it order from the be, initPay, makes the order on the frontend by inserting all the details of the order, and then calls the razorpay frontend
+  const appointmentRazorpay=async(appointmentId)=>{
+    try{
+      const {data}=await axios.post(backendUrl+'/api/user/payment-razorpay',{
+        appointmentId
+      },{
+        headers:{token}
+      })
+      if(data.success){
+        // send the order (which is main exported send thing from the backend, order is created on razorpay instance in which we have inserted options) 
+        initPay(data.order);
+      }else{
+        toast.error(data.message)
+      }
+
+    }
+    catch(error){
+      console.log("failed in frontend ")
+      toast.error(error.message);
+    }
+  }
+  
   return (
     <div>
       <p className='pb-3 mt-12 font-medium text-zinc-700 border-b'>My appointments</p>
-
       <div>
         {appointments.map((item, index) => (
           <div className='grid grid-cols-[1fr_2fr] gap-4 sm:flex sm:gap-6 py-2 border-b' key={index}>
@@ -80,7 +136,15 @@ const MyAppointments = () => {
             <div></div>
 
             <div className='flex flex-col gap-2 justify-end'>
-               {!item.cancelled && <button className='text-sm text-stone-500 sm:min-w-48 py-2 border rounded hover:bg-primary hover:text-white transition-all duration-300'>Pay Online</button>}
+              {
+                !item.cancelled && item.payment&&
+                <button className='sm:min-w-48 py-2 border rounded text-stone-500 bg-indigo-200 '>
+                  Paid
+                </button>
+              }
+               {!item.cancelled &&
+               !item.payment && 
+                <button onClick={()=>appointmentRazorpay(item._id)} className='text-sm text-stone-500 sm:min-w-48 py-2 border rounded hover:bg-primary hover:text-white transition-all duration-300'>Pay Online</button>}
                {
                 !item.cancelled && 
                 <button onClick={() => cancelAppointment(item._id)} className='text-sm text-stone-500 sm:min-w-48 py-2 border rounded hover:bg-red-600 hover:text-white transition-all duration-300 px-1'>Cancel Appointment</button>

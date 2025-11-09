@@ -5,9 +5,9 @@ import {v2 as cloudinary} from "cloudinary"
 import userModel from "../models/userModel.js"
 import appointmentModel from "../models/appointmentModel.js"
 import doctorModel from "../models/doctorModel.js"
+import razorpay from "razorpay"
 
 const registerUser=async(req,res)=>{
-
     
     try{
         
@@ -258,3 +258,81 @@ const cancelAppointment=async(req,res)=>{
     }
 }
 export {cancelAppointment};
+
+// creating instance of razorpay
+const razorpayInstance=new razorpay({
+    key_id:process.env.RAZORPAY_KEY_ID,
+    key_secret:process.env.RAZORPAY_KEY_SECRET
+})
+
+// API TO make payment by razorpay
+const paymentRazorpay=async(req,res)=>{
+    try {
+       
+        const {appointmentId}=req.body;
+
+    const appointmentData=await appointmentModel.findById(appointmentId);
+    if(!appointmentData || appointmentData.cancelled){
+       
+        return res.status(400).json({
+            success:false,
+            message:"Appointment cancelled or not found"
+        })
+    }
+    // creating options
+    const options={
+        amount:appointmentData.amount * 100,
+        currency:process.env.CURRENCY,
+        receipt:appointmentId,
+        // unique id for your internal tracking
+    }
+    // creating order by inserting the options in instance
+   
+    const order=await razorpayInstance.orders.create(options);
+
+    
+    return res.status(200).json({
+        success:true,
+        order
+    })
+    } catch (error) {
+        console.log(error)
+        return res.status(500).json({
+            success:false,
+            message:error.message
+        })
+        
+    }
+}
+export {paymentRazorpay}
+
+const verifyRazorpay=async(req,res)=>{
+    try{
+        const {razorpay_order_id}=req.body
+        const orderInfo=await razorpayInstance.orders.fetch(razorpay_order_id);
+        console.log(orderInfo);
+        // we inserted the appointmentId inside that order hence we are updating the payment 
+        if(orderInfo.status==="paid"){
+            await appointmentModel.findByIdAndUpdate(orderInfo.receipt,{payment:true})
+            return res.status(200).json({
+                success:true,
+                message:"payment successful"
+            })
+        }
+        else{
+            return res.status(400).json({
+                success:false,
+                message:"payment failed"
+            })
+        }
+    }
+    catch(error){
+        console.log(error)
+        return res.status(500).json({
+            success:false,
+            message:error.message
+        })
+
+    }
+}
+export {verifyRazorpay}
