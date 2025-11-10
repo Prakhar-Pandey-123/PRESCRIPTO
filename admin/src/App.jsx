@@ -28,7 +28,6 @@ const App=()=>{
           <Route path="all-appointments" element={<AllAppointments></AllAppointments>}></Route>
           <Route path="/add-doctor" element={<AddDoctor></AddDoctor>}></Route>
           <Route path="/doctor-list" element={<DoctorsList></DoctorsList>}></Route>
-
         </Routes>
       </div>
     </div>
@@ -40,3 +39,7 @@ const App=()=>{
   )
 }
 export default App
+
+
+// Flat routes (no nesting) =/login, /about, /contact= no outlet use
+// Nested routes (shared layout)=/admin/dashboard, /admin/appointments=use outlet

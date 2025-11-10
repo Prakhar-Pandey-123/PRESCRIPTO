@@ -1,4 +1,4 @@
-import { createContext } from "react";
+import { createContext, useEffect } from "react";
 import { useState } from "react";
 import {toast} from "react-toastify"
 import axios from "axios"
@@ -6,7 +6,7 @@ import axios from "axios"
 export const AdminContext=createContext()
 
 const AdminContextProvider=(props)=>{
-
+    const [dashData,setDashData]=useState(false)
     const [aToken,setAToken]=useState(localStorage.getItem("aToken")?localStorage.getItem('aToken'):'');
     const [doctors,setDoctors]=useState([])
     const [appointments,setAppointments]=useState([])
@@ -85,9 +85,30 @@ const AdminContextProvider=(props)=>{
             toast.error(error.message);
         }
     }
+    const getDashData=async()=>{
+        try{
+            const {data}=await axios.get(backendUrl+'/api/admin/dashboard',{headers:{aToken}})
+
+            if(data.success){
+                console.log("api data",data)
+                setDashData(data.dashData);
+            }
+                 
+            else 
+                toast.error(data.message)
+        }
+        catch(error){
+            console.log(error)
+            toast.error(error.message);
+        }
+    }
+
+    useEffect(()=>{
+        getDashData()
+    },[appointments])
 
     const value={
-        aToken,setAToken,backendUrl,getAllDoctors,doctors,changeAvailability,cancelAppointment,getAllAppointments,appointments
+        aToken,setAToken,backendUrl,getAllDoctors,doctors,changeAvailability,cancelAppointment,getAllAppointments,appointments,getDashData,dashData
     }
     return(
         <AdminContext.Provider value={value}>
