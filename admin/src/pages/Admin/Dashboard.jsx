@@ -14,6 +14,7 @@ const Dashboard=()=>{
             console.log("dashdata=",dashData)
         }
     },[aToken])
+     console.log("admin dash data from dashboard.jsx",dashData)
 
  return dashData && (
     <div className='m-5 mx-auto'>

@@ -5,18 +5,18 @@ import jwt from "jsonwebtoken"
 const loginDoctor=async(req,res)=>{
     try{
         const {email,password}=req.body;
-        const user=await doctorModel.findOne({email});
+        const doctor=await doctorModel.findOne({email});
 
-        if(!user){
+        if(!doctor){
             return res.status(400).json({
                 success:false,
                 message:"Invalid Credentials"
             })
         }
-        const isMatch=await bcrypt.compare(password,user.password);
+        const isMatch=await bcrypt.compare(password,doctor.password);
         if(isMatch){
             const token=jwt.sign({
-                id:user._id
+                id:doctor._id
             },process.env.JWT_SECRET)
             return res.json({
                 success:true,
@@ -38,6 +38,7 @@ const loginDoctor=async(req,res)=>{
         })
     }   
 }
+export {loginDoctor}
 
 const changeAvailability=async(req,res)=>{
     try{

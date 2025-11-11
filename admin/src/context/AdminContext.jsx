@@ -87,8 +87,9 @@ const AdminContextProvider=(props)=>{
     }
     const getDashData=async()=>{
         try{
+            console.log("inside get dash data")
             const {data}=await axios.get(backendUrl+'/api/admin/dashboard',{headers:{aToken}})
-
+            console.log("data from getDashdata",data);
             if(data.success){
                 console.log("api data",data)
                 setDashData(data.dashData);
@@ -103,9 +104,9 @@ const AdminContextProvider=(props)=>{
         }
     }
 
-    useEffect(()=>{
-        getDashData()
-    },[appointments])
+    // useEffect(()=>{
+    //     getDashData()
+    // },[appointments])
 
     const value={
         aToken,setAToken,backendUrl,getAllDoctors,doctors,changeAvailability,cancelAppointment,getAllAppointments,appointments,getDashData,dashData

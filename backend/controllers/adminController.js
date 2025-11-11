@@ -81,7 +81,7 @@ const loginAdmin=(req,res)=>{
             })
         }
         else{
-            req.status(400).json({
+            res.status(400).json({
                 success:false,
                 message:error.message
             });
