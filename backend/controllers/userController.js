@@ -1,0 +1,346 @@
+import validator from "validator"
+import bcrypt from "bcrypt"
+import jwt from "jsonwebtoken"
+import {v2 as cloudinary} from "cloudinary"
+import userModel from "../models/userModel.js"
+import appointmentModel from "../models/appointmentModel.js"
+import doctorModel from "../models/doctorModel.js"
+import razorpay from "razorpay"
+
+const registerUser=async(req,res)=>{
+    
+    try{
+        
+        const {name,email,password}=req.body;
+        if(!name || !password || !email){
+            return res.json({
+                success:false,
+                message:"Missing Details"
+            })
+        }
+        // validating strong password
+        if(password.length<6){
+            return res.json({success:false,
+                message:"enter a password"
+            })
+        }
+        console.log("creating salt")
+        const salt=await bcrypt.genSalt(10)
+        const hashedPassword=await bcrypt.hash(password,salt)
+        
+
+        const userData={
+            name,email,password:hashedPassword
+        }
+        console.log("saving data in db")
+        const newUser=new userModel(userData);
+        const user=await newUser.save()
+
+        const token =jwt.sign({id:user._id},process.env.JWT_SECRET);
+
+        return res.status(200).json({
+            success:true,
+            token
+        })
+    }
+    catch(error){
+        console.log("error response",error.message)
+        return res.status(500).json({
+            success:false,
+            message:error.message
+        })
+    }
+}
+
+const loginUser=async(req,res)=>{
+    try{
+
+        const {email,password}=req.body
+        const user=await userModel.findOne({email});
+        if(!user){
+            return res.status(400).json({
+                success:false,
+                message:"user does not exist"
+            })
+        }
+        const isMatch=await bcrypt.compare(password,user.password);
+        if(!isMatch){
+            return res.status(400).json({
+                success:false,
+                message:"invalid password"
+            })
+        }
+        else{
+            const token=jwt.sign({
+                id:user._id
+            },process.env.JWT_SECRET)
+            return res.status(200).json({
+                success:true,
+                token:token
+            })
+        }
+    }
+    catch(error){
+    console.log(error)
+    res.json({ success: false,
+        failed:"at loginuser backend",
+        message: error.message })
+  }
+}
+
+const getProfile=async(req,res)=>{
+    try{
+        const {userId}=req.body;
+        const userData=await userModel.findById(userId).select("-password");
+
+        res.status(200).json({
+            success:true,
+            userData
+        })
+    }
+    catch(error){
+        console.log(error)
+        res.status(500).json({
+            success:false,
+            message:error.message
+        })
+    }
+}
+export {getProfile}
+
+export {registerUser,loginUser}
+
+const updateProfile=async(req,res)=>{
+    try{
+        const {userId,name,phone,address,gender}=req.body;
+        const imageFile=req.file;
+
+        if(!name || !phone || !dob || !gender){
+            return res.status(400).json({
+                success:false,
+                message:"Data missing"
+            })
+        }
+        await userModel.findByIdAndUpdate(userId,{name,phone,
+            address:JSON.parse(address),
+            dob,gender
+        })
+        if(imageFile){
+            const imageUpload=await cloudinary.uploader.upload(imageFile.path,
+                {resource_type:'image'});
+            
+            const imageURL=imageUpload.secure_url;
+            
+            await userModel.findByIdAndUpdate(userId,{image:imageURL});
+        }
+        res.status(200).json({
+            message:true,
+            message:"Profile Updated"
+        })
+    }
+    catch(error){
+        console.log(error)
+        res.status(500).json({
+            success:false,
+            message:error.message
+        })
+    }
+}
+export {updateProfile}
+
+const bookAppointment=async(req,res)=>{
+    try {
+        const {userId,docId,slotDate,slotTime}=req.body;
+        console.log("Booking request:", req.body); // log incoming request
+        const docData=await doctorModel.findById(docId).select("-password");
+        if(!docData || !docData.available){
+            return res.status(400).json({
+                success:false,
+                message:"doctor not available or not found"
+            })
+        }
+
+        let slots_booked=docData.slots_booked;
+        
+        console.log("Current slots booked:", slots_booked); // see current slots
+
+        if(slots_booked[slotDate]){
+            if(slots_booked[slotDate].includes(slotTime)){
+                return res.status(400).json({
+                    success:false,
+                    message:"Slot not available"
+                })
+            }
+            else{
+                slots_booked[slotDate].push(slotTime);
+            }
+        }else{
+            slots_booked[slotDate]=[]
+            slots_booked[slotDate].push(slotTime);
+        }
+
+        const userData=await userModel.findById(userId).select('-password');
+        
+        const appointmentData={
+            userId,docId,
+            userData,docData,
+            amount:docData.fees,
+            slotTime,slotDate,
+            date:Date.now()
+        }
+        console.log("Appointment data to save:", appointmentData); // log final appointment object
+
+        const newAppointment=new appointmentModel(appointmentData);
+        await newAppointment.save()
+console.log("Appointment saved with ID:", newAppointment._id); // confirm save
+        await doctorModel.findByIdAndUpdate(docId,{slots_booked});
+        return res.status(200).json({
+            success:true,
+            message:"Appointment Booked Successfully"
+        })
+    } catch (error) {
+        
+        console.log(error)
+        return res.status(500).json({
+            success:false,
+            message:error.message
+        })
+    }
+}
+export {bookAppointment}
+
+const listAppointment=async(req,res)=>{
+    try{
+        
+        const {userId}=req.body;
+        const appointments=await appointmentModel.find({userId});
+
+        res.json({
+            success:true,
+            appointments
+        })
+    }
+    catch(error){
+        console.log(error)
+        res.json({success:false,
+            message:error.message
+        })
+    }
+}
+export {listAppointment}
+
+const cancelAppointment=async(req,res)=>{
+    try{
+        const {userId,appointmentId}=req.body;
+        const appointmentData=await appointmentModel.findById(appointmentId);
+        // verify user
+        if(appointmentData.userId!==userId){
+            return res.status(400).json({
+                success:false,
+                message:"Unauthorized action"
+            })
+        }
+        await appointmentModel.findByIdAndUpdate(appointmentId,{cancelled:true});
+        // releasing doctor slot
+
+        const {docId,slotDate,slotTime}=appointmentData;
+        const doctorData=await doctorModel.findById(docId);
+
+        let slots_booked=doctorData.slots_booked
+
+        slots_booked[slotDate]=slots_booked[slotDate].filter(e=>e!==slotTime);
+
+        await doctorModel.findByIdAndUpdate(docId,{slots_booked});
+        return res.json({
+            success:true,
+            message:'Appointment Cancelled'
+        });
+    }
+    catch(error){
+        console.log(error)
+        return res.json({
+            success:false,
+            message:error.message
+        })
+    }
+}
+export {cancelAppointment};
+
+// creating instance of razorpay
+const razorpayInstance=new razorpay({
+    key_id:process.env.RAZORPAY_KEY_ID,
+    key_secret:process.env.RAZORPAY_KEY_SECRET
+})
+
+// API TO make payment by razorpay
+const paymentRazorpay=async(req,res)=>{
+    try {
+       
+        const {appointmentId}=req.body;
+
+    const appointmentData=await appointmentModel.findById(appointmentId);
+    if(!appointmentData || appointmentData.cancelled){
+       
+        return res.status(400).json({
+            success:false,
+            message:"Appointment cancelled or not found"
+        })
+    }
+    // creating options
+    const options={
+        amount:appointmentData.amount * 100,
+        currency:process.env.CURRENCY,
+        receipt:appointmentId,
+        // unique id for your internal tracking
+    }
+    // creating order by inserting the options in instance
+   console.log("Creating Razorpay order with options:", options);
+
+    const order=await razorpayInstance.orders.create(options);
+
+    
+    return res.status(200).json({
+        success:true,
+        order
+    })
+    } catch (error) {
+        console.log(error)
+        return res.status(500).json({
+            success:false,
+            message:error.message
+        })
+        
+    }
+}
+export {paymentRazorpay}
+
+const verifyRazorpay=async(req,res)=>{
+    try{
+        const {razorpay_order_id}=req.body
+        const orderInfo=await razorpayInstance.orders.fetch(razorpay_order_id);
+        console.log(orderInfo);
+        // we inserted the appointmentId inside that order hence we are updating the payment 
+        if(orderInfo.status==="paid"){
+            await appointmentModel.findByIdAndUpdate(orderInfo.receipt,{payment:true})
+            return res.status(200).json({
+                success:true,
+                message:"payment successful"
+            })
+        }
+        else{
+            return res.status(400).json({
+                success:false,
+                message:"payment failed"
+            })
+        }
+    }
+    catch(error){
+        console.log(error)
+        return res.status(500).json({
+            success:false,
+            message:error.message
+        })
+
+    }
+}
+export {verifyRazorpay}
