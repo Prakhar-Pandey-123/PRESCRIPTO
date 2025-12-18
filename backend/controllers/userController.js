@@ -344,3 +344,34 @@ const verifyRazorpay=async(req,res)=>{
     }
 }
 export {verifyRazorpay}
+
+const getDoc=async(req,res)=>{
+    try{
+        const {docName}=req.body;
+        console.log("docName=",docName);
+    if(!docName){
+        return res.status(400).json({
+            message:"didnt got the doc name"
+        })
+    }
+
+    const doc=await doctorModel.findOne({name:docName});
+
+    console.log("doc=",doc);
+    const id=doc._id.toString().trim();
+    console.log("id=",id);
+    return res.status(200).json({
+        success:true,
+        id:id
+    })
+    }
+    catch(error){
+        console.log(error)
+        return res.status(500).json({
+            success:false,
+            message:"internal server error"
+        })
+
+    }
+}
+export {getDoc}

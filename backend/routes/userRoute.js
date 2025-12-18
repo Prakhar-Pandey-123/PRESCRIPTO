@@ -1,5 +1,5 @@
 import express from "express"
-import { registerUser, updateProfile,bookAppointment, listAppointment, cancelAppointment, paymentRazorpay,verifyRazorpay } from "../controllers/userController.js"
+import { registerUser, updateProfile,bookAppointment, listAppointment, cancelAppointment, paymentRazorpay,verifyRazorpay,getDoc } from "../controllers/userController.js"
 
 import { loginUser } from "../controllers/userController.js"
 import { getProfile } from "../controllers/userController.js"
@@ -18,6 +18,7 @@ userRouter.post('/appointments',authUser,listAppointment)
 userRouter.post('/cancel-appointment',authUser,cancelAppointment)
 userRouter.post('/payment-razorpay',authUser,paymentRazorpay);
 userRouter.post("/verifyRazorpay",authUser,verifyRazorpay);
+userRouter.post("/getDoc",getDoc);
 
 
 export default userRouter

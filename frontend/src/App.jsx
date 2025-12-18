@@ -10,6 +10,7 @@ import MyAppointments from "./pages/MyAppointments"
 import Appointment from "./pages/Appointment"
 import Navbar from "./components/Navbar"
 import Footer from "./components/Footer"
+import Aichat from "./components/Aichat"
 
 function App(){
   return(
@@ -28,6 +29,8 @@ function App(){
         </Route>
         <Route path="my-appointments" element={<MyAppointments></MyAppointments>}></Route>
         <Route path="/appointment/:docId" element={<Appointment></Appointment>}></Route>
+        <Route path="/ai-chat" element={<Aichat></Aichat>}></Route>
+
       </Routes>
       <Footer />
     </div>

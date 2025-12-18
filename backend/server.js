@@ -6,6 +6,7 @@ import 'dotenv/config'
 import adminRouter from "./routes/adminRoute.js"
 import doctorRouter from "./routes/doctorRoute.js"
 import userRouter from "./routes/userRoute.js"
+import chatRouter from "./routes/chat.js";
 
 import connectCloudinary from "./config/cloudinary.js"
 connectCloudinary()
@@ -24,6 +25,7 @@ app.use(cors())
 app.use('/api/admin',adminRouter);
 app.use("/api/user",userRouter);
 app.use("/api/doctor",doctorRouter)
+app.use("/chat",chatRouter);
 
 app.get('/',(req,res)=>{
     res.send("api working")
