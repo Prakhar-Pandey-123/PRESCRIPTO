@@ -32,7 +32,7 @@ localStorage.removeItem(token);
     <NavLink to='/contact'>CONTACT</NavLink>
   </li>
   <li  className='py-1 text-grey-900 border border-pink-900 border-3 rounded-md bg-pink-200 cursor-pointer px-2' onClick={()=>navigate("/ai-chat")}>
-    AI Doc
+    AI ✦
   </li>
 </ul>
 
