@@ -1,4 +1,8 @@
+# user portal =>
 https://jaypee-work.vercel.app/
+# admin portal =>
+https://jaypee-work-admin-portal.vercel.app/
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
